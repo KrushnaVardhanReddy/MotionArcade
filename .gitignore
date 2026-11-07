@@ -1,3 +1,17 @@
+# Environment variables
 .env
+.env.*
+!.env.example
+
+# Rust build artifacts
 target/
+**/*.rs.bk
+Cargo.lock
+
+# Logs & profiling
 *.log
+reports/tmp/
+
+# OS metadata
+.DS_Store
+Thumbs.db
