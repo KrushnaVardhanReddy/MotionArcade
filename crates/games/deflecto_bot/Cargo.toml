@@ -7,3 +7,5 @@ license.workspace = true
 
 [dependencies]
 core = { path = "../../core" }
+learning = { path = "../../learning" }
+tracing.workspace = true

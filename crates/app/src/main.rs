@@ -21,6 +21,14 @@ struct CliArgs {
     #[arg(long)]
     test_frames: Option<u32>,
 
+    /// Path to TOML content pack file (defaults to content/bundled/math/number_facts_k2.toml)
+    #[arg(long)]
+    pack: Option<PathBuf>,
+
+    /// Force pure arcade mode even if content pack exists
+    #[arg(long)]
+    arcade: bool,
+
     /// Window width in pixels
     #[arg(long, default_value_t = 1280)]
     width: i32,
@@ -68,7 +76,51 @@ async fn main() {
         }
     };
 
-    let mut game = DeflectoBot::new();
+    let mut game = if args.arcade {
+        tracing::info!("Arcade mode explicitly requested via --arcade");
+        DeflectoBot::new_arcade()
+    } else {
+        let pack_path = if let Some(p) = &args.pack {
+            p.clone()
+        } else {
+            let candidates = [
+                PathBuf::from("content/bundled/math/number_facts_k2.toml"),
+                PathBuf::from("../../content/bundled/math/number_facts_k2.toml"),
+                PathBuf::from("../content/bundled/math/number_facts_k2.toml"),
+            ];
+            let mut found = PathBuf::from("content/bundled/math/number_facts_k2.toml");
+            for c in &candidates {
+                if c.exists() {
+                    found = c.clone();
+                    break;
+                }
+            }
+            found
+        };
+
+        if pack_path.exists() {
+            match learning::bridge::LeitnerLearningSession::from_file(&pack_path) {
+                Ok(session) => {
+                    tracing::info!("Loaded educational content pack from {:?}", pack_path);
+                    DeflectoBot::new_learning(Box::new(session))
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to parse content pack from {:?}: {}. Falling back to arcade mode.",
+                        pack_path,
+                        e
+                    );
+                    DeflectoBot::new_arcade()
+                }
+            }
+        } else {
+            tracing::info!(
+                "Content pack not found at {:?}. Falling back to arcade mode.",
+                pack_path
+            );
+            DeflectoBot::new_arcade()
+        }
+    };
     game.init();
 
     let mut canvas = MacroquadCanvas;

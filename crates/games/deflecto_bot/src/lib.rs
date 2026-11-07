@@ -1,5 +1,6 @@
 use core::game::{Game, GameStatus, RenderContext};
 use core::pose::{PlayerInput, COCO_LEFT_WRIST, COCO_RIGHT_WRIST};
+use learning::bridge::{LearningSessionPort, QuestionWave};
 use std::f32::consts::TAU;
 
 /// Number of particles spawned per orb explosion.
@@ -57,6 +58,27 @@ impl Quadrant {
             Quadrant::BottomLeft,
         ]
     }
+
+    /// Converts a 0..=3 index to its corresponding quadrant.
+    pub fn from_u8(val: u8) -> Option<Self> {
+        match val {
+            0 => Some(Quadrant::TopLeft),
+            1 => Some(Quadrant::TopRight),
+            2 => Some(Quadrant::BottomLeft),
+            3 => Some(Quadrant::BottomRight),
+            _ => None,
+        }
+    }
+
+    /// Converts quadrant to 0..=3 index.
+    pub fn to_u8(self) -> u8 {
+        match self {
+            Quadrant::TopLeft => 0,
+            Quadrant::TopRight => 1,
+            Quadrant::BottomLeft => 2,
+            Quadrant::BottomRight => 3,
+        }
+    }
 }
 
 /// A high-speed plasma projectile flying toward the player.
@@ -68,6 +90,7 @@ pub struct PlasmaOrb {
     pub is_correct: bool,
     pub progress: f32, // 0.0 (distant horizon) to 1.0 (strike line)
     pub radius: f32,
+    pub item_id: String,
 }
 
 impl PlasmaOrb {
@@ -84,7 +107,13 @@ impl PlasmaOrb {
             is_correct,
             progress: 0.0,
             radius: 0.06,
+            item_id: String::new(),
         }
+    }
+
+    pub fn with_item_id(mut self, item_id: impl Into<String>) -> Self {
+        self.item_id = item_id.into();
+        self
     }
 
     /// Current (x, y) coordinate in normalized space based on progress from horizon (0.5, 0.5) to quadrant target.
@@ -147,8 +176,7 @@ struct PlayerWristState {
     right_quadrant: Option<Quadrant>,
 }
 
-/// Flagship Deflecto-Bot game implementation.
-#[derive(Debug, Clone)]
+/// Flagship Deflecto-Bot game implementation supporting both procedural arcade and educational modes.
 pub struct DeflectoBot {
     pub score: u32,
     pub orbs: Vec<PlasmaOrb>,
@@ -162,6 +190,24 @@ pub struct DeflectoBot {
     wrist_states: Vec<PlayerWristState>,
     quadrant_cycle_idx: usize,
     total_time: f32,
+    session: Option<Box<dyn LearningSessionPort>>,
+    active_wave: Option<QuestionWave>,
+}
+
+impl std::fmt::Debug for DeflectoBot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DeflectoBot")
+            .field("score", &self.score)
+            .field("orbs", &self.orbs)
+            .field("particles", &self.particles)
+            .field("punch_intensity", &self.punch_intensity)
+            .field("status", &self.status)
+            .field("spawn_interval", &self.spawn_interval)
+            .field("orb_speed", &self.orb_speed)
+            .field("active_wave", &self.active_wave)
+            .field("is_learning_mode", &self.session.is_some())
+            .finish()
+    }
 }
 
 impl Default for DeflectoBot {
@@ -171,6 +217,20 @@ impl Default for DeflectoBot {
 }
 
 impl DeflectoBot {
+    /// Creates a standard arcade bot (numbers are procedural, no learning pack).
+    pub fn new_arcade() -> Self {
+        Self::new()
+    }
+
+    /// Creates an educational bot wired directly to a learning session.
+    pub fn new_learning(session: Box<dyn LearningSessionPort>) -> Self {
+        let mut bot = Self::new();
+        bot.session = Some(session);
+        bot.spawn_interval = 1.6;
+        bot
+    }
+
+    /// Creates a default standalone bot.
     pub fn new() -> Self {
         Self {
             score: 0,
@@ -185,6 +245,8 @@ impl DeflectoBot {
             wrist_states: Vec::new(),
             quadrant_cycle_idx: 0,
             total_time: 0.0,
+            session: None,
+            active_wave: None,
         }
     }
 
@@ -206,6 +268,38 @@ impl DeflectoBot {
 
     pub fn punch_intensity(&self) -> f32 {
         self.punch_intensity
+    }
+
+    pub fn is_learning_mode(&self) -> bool {
+        self.session.is_some()
+    }
+
+    pub fn session(&self) -> Option<&dyn LearningSessionPort> {
+        self.session.as_deref()
+    }
+
+    pub fn session_mut(&mut self) -> Option<&mut dyn LearningSessionPort> {
+        self.session.as_deref_mut()
+    }
+
+    pub fn active_wave(&self) -> Option<&QuestionWave> {
+        self.active_wave.as_ref()
+    }
+
+    pub fn current_prompt(&self) -> Option<String> {
+        if let Some(session) = &self.session {
+            session.current_prompt()
+        } else {
+            self.active_wave.as_ref().map(|w| w.prompt.clone())
+        }
+    }
+
+    pub fn set_spawn_interval(&mut self, interval: f32) {
+        self.spawn_interval = interval;
+    }
+
+    pub fn set_orb_speed(&mut self, speed: f32) {
+        self.orb_speed = speed;
     }
 
     pub fn screen_shake(&self) -> (f32, f32) {
@@ -241,6 +335,29 @@ impl DeflectoBot {
         self.spawn_orb(quadrant, "", true)
     }
 
+    /// Spawns a question wave from the learning session, populating 1 correct orb and distractors.
+    pub fn spawn_question_wave(&mut self) -> bool {
+        if let Some(session) = &mut self.session {
+            if let Some(wave) = session.next_question_wave() {
+                for choice in &wave.choices {
+                    let quadrant = match Quadrant::from_u8(choice.target_quadrant) {
+                        Some(q) => q,
+                        None => Quadrant::TopLeft,
+                    };
+                    let id = self.next_orb_id;
+                    self.next_orb_id = self.next_orb_id.wrapping_add(1);
+                    let mut orb =
+                        PlasmaOrb::new(id, quadrant, choice.text.clone(), choice.is_correct);
+                    orb.item_id = wave.item_id.clone();
+                    self.orbs.push(orb);
+                }
+                self.active_wave = Some(wave);
+                return true;
+            }
+        }
+        false
+    }
+
     /// Triggers an orb explosion into 30 particles with screen punch effect.
     pub fn explode_orb(&mut self, orb: &PlasmaOrb) {
         let (ox, oy) = orb.position();
@@ -254,16 +371,32 @@ impl DeflectoBot {
             let vy = angle.sin() * speed_variation;
             let max_lifetime = 0.45 + ((i % 3) as f32) * 0.12;
 
-            let color = if orb.is_correct {
-                // Golden starburst / bright plasma yellow
-                [1.0, 0.88, 0.25, 1.0]
-            } else {
-                // High-voltage magenta
-                [1.0, 0.25, 0.70, 1.0]
-            };
+            // Golden starburst / bright plasma yellow
+            let color = [1.0, 0.88, 0.25, 1.0];
 
             self.particles
                 .push(Particle::new(ox, oy, vx, vy, max_lifetime, color, 0.012));
+        }
+    }
+
+    /// Triggers a gentle soft red dissolve effect when an incorrect orb is deflected.
+    pub fn dissolve_orb(&mut self, orb: &PlasmaOrb) {
+        let (ox, oy) = orb.position();
+        self.punch_intensity = (self.punch_intensity + 0.12).min(0.30);
+
+        const DISSOLVE_PARTICLES: usize = 20;
+        for i in 0..DISSOLVE_PARTICLES {
+            let angle = (i as f32) * (TAU / (DISSOLVE_PARTICLES as f32));
+            let speed = 0.09 + ((i % 4) as f32) * 0.03;
+            let vx = angle.cos() * speed;
+            let vy = angle.sin() * speed - 0.04; // subtle upward drift
+            let max_lifetime = 0.55 + ((i % 3) as f32) * 0.12;
+
+            // Soft crimson red dissolve
+            let color = [0.95, 0.28, 0.28, 0.75];
+
+            self.particles
+                .push(Particle::new(ox, oy, vx, vy, max_lifetime, color, 0.010));
         }
     }
 
@@ -380,9 +513,14 @@ impl Game for DeflectoBot {
         self.wrist_states.clear();
         self.quadrant_cycle_idx = 0;
         self.total_time = 0.0;
+        self.active_wave = None;
 
-        // Spawn first orb immediately
-        self.spawn_next_orb();
+        // Spawn first orb or question wave immediately
+        if self.session.is_some() {
+            self.spawn_question_wave();
+        } else {
+            self.spawn_next_orb();
+        }
     }
 
     fn update(&mut self, dt: f32, input: &PlayerInput) -> GameStatus {
@@ -396,12 +534,48 @@ impl Game for DeflectoBot {
         // 2. Check wrist collisions in quadrants
         let hit_indices = self.check_quadrant_hits(input);
 
-        // Explode hit orbs in reverse order so indices remain valid
+        let mut answered_correctly = false;
+        let mut correct_wave_id = String::new();
+
+        // Process hit orbs in reverse order so indices remain valid
         for &idx in hit_indices.iter().rev() {
             if idx < self.orbs.len() {
-                let orb = self.orbs.remove(idx);
-                self.explode_orb(&orb);
+                let orb = self.orbs[idx].clone();
+
+                let is_correct = if let Some(session) = &mut self.session {
+                    let item_id = if !orb.item_id.is_empty() {
+                        &orb.item_id
+                    } else if let Some(wave) = &self.active_wave {
+                        &wave.item_id
+                    } else {
+                        ""
+                    };
+                    session.evaluate_choice(item_id, &orb.value_text)
+                } else {
+                    orb.is_correct
+                };
+
+                if is_correct {
+                    let removed = self.orbs.remove(idx);
+                    self.explode_orb(&removed);
+                    answered_correctly = true;
+                    correct_wave_id = removed.item_id;
+                } else {
+                    let removed = self.orbs.remove(idx);
+                    self.dissolve_orb(&removed);
+                }
             }
+        }
+
+        // If in learning mode and correct orb was hit:
+        // Clear remaining distractor orbs for this question wave and reset spawn timer
+        if answered_correctly && self.session.is_some() {
+            if !correct_wave_id.is_empty() {
+                self.orbs.retain(|o| o.item_id != correct_wave_id);
+            } else {
+                self.orbs.clear();
+            }
+            self.spawn_timer = 0.0;
         }
 
         // 3. Remove missed orbs that passed beyond the strike line
@@ -418,9 +592,14 @@ impl Game for DeflectoBot {
         // 5. Decay screen punch intensity
         self.punch_intensity = (self.punch_intensity - dt * 5.0).max(0.0);
 
-        // 6. Spawn procedural incoming orbs
+        // 6. Spawn procedural incoming orbs or question waves
         self.spawn_timer += dt;
-        if self.spawn_timer >= self.spawn_interval {
+        if self.session.is_some() {
+            if self.orbs.is_empty() && self.spawn_timer >= self.spawn_interval {
+                self.spawn_timer = 0.0;
+                self.spawn_question_wave();
+            }
+        } else if self.spawn_timer >= self.spawn_interval {
             self.spawn_timer = 0.0;
             self.spawn_next_orb();
         }
@@ -483,11 +662,13 @@ impl Game for DeflectoBot {
 
             // Optional text label
             if !orb.value_text.is_empty() {
+                let font_size = (26.0 * scale).clamp(16.0, 36.0);
+                let text_offset_x = (orb.value_text.len() as f32 * font_size * 0.28).max(10.0);
                 ctx.draw.draw_text(
                     &orb.value_text,
-                    sx - 12.0,
-                    sy + 6.0,
-                    22.0,
+                    sx - text_offset_x,
+                    sy + font_size * 0.35,
+                    font_size,
                     [1.0, 1.0, 1.0, 1.0],
                 );
             }
@@ -518,17 +699,36 @@ impl Game for DeflectoBot {
             );
         }
 
-        // 5. Draw HUD header & score
+        // 5. Draw HUD header, score, and active prompt
         let score_text = format!("SCORE: {:04}", self.score);
         ctx.draw
             .draw_text(&score_text, 36.0, 52.0, 34.0, [1.0, 0.9, 0.25, 1.0]);
-        ctx.draw.draw_text(
-            "DEFLECTO-BOT",
-            sw * 0.5 - 95.0,
-            48.0,
-            28.0,
-            [0.2, 0.85, 1.0, 0.8],
-        );
+
+        if let Some(prompt) = self.current_prompt() {
+            // Display active question prompt at top center
+            let font_size = 38.0;
+            let est_half_width = prompt.len() as f32 * font_size * 0.28;
+            let px = (sw * 0.5 - est_half_width).max(180.0);
+            ctx.draw
+                .draw_text(&prompt, px, 52.0, font_size, [1.0, 1.0, 1.0, 1.0]);
+
+            // Display session statistics on top right if in learning mode
+            if let Some(session) = &self.session {
+                let (correct, total) = session.session_stats();
+                let stats_text = format!("{}/{} CORRECT", correct, total);
+                ctx.draw
+                    .draw_text(&stats_text, sw - 230.0, 52.0, 24.0, [0.2, 0.85, 1.0, 0.9]);
+            }
+        } else {
+            // Standard Arcade Mode title
+            ctx.draw.draw_text(
+                "DEFLECTO-BOT",
+                sw * 0.5 - 95.0,
+                48.0,
+                28.0,
+                [0.2, 0.85, 1.0, 0.8],
+            );
+        }
     }
 }
 
@@ -536,6 +736,7 @@ impl Game for DeflectoBot {
 mod tests {
     use super::*;
     use core::pose::{Keypoint, Skeleton, KEYPOINT_COUNT};
+    use learning::bridge::{LearningSessionPort, OrbChoice, QuestionWave};
 
     fn make_input_with_wrist(quadrant: Quadrant) -> PlayerInput {
         let (wx, wy) = quadrant.center();
@@ -544,6 +745,60 @@ mod tests {
         keypoints[COCO_RIGHT_WRIST] = Keypoint::new(wx, wy, 0.9);
         let skel = Skeleton::new(1, keypoints);
         PlayerInput::new(vec![skel], 1.0)
+    }
+
+    struct MockSession {
+        prompts: Vec<String>,
+        calls: Vec<String>,
+        evaluated: Vec<(String, String)>,
+    }
+
+    impl MockSession {
+        fn new() -> Self {
+            Self {
+                prompts: vec!["2 + 3 = ?".to_string()],
+                calls: Vec::new(),
+                evaluated: Vec::new(),
+            }
+        }
+    }
+
+    impl LearningSessionPort for MockSession {
+        fn current_prompt(&self) -> Option<String> {
+            self.prompts.first().cloned()
+        }
+
+        fn next_question_wave(&mut self) -> Option<QuestionWave> {
+            self.calls.push("next_wave".to_string());
+            Some(QuestionWave {
+                item_id: "q1".to_string(),
+                prompt: "2 + 3 = ?".to_string(),
+                correct_answer: "5".to_string(),
+                choices: vec![
+                    OrbChoice {
+                        text: "5".to_string(),
+                        is_correct: true,
+                        target_quadrant: 0,
+                    },
+                    OrbChoice {
+                        text: "4".to_string(),
+                        is_correct: false,
+                        target_quadrant: 1,
+                    },
+                ],
+            })
+        }
+
+        fn evaluate_choice(&mut self, item_id: &str, chosen_text: &str) -> bool {
+            self.evaluated
+                .push((item_id.to_string(), chosen_text.to_string()));
+            chosen_text == "5"
+        }
+
+        fn session_stats(&self) -> (u32, u32) {
+            let correct = self.evaluated.iter().filter(|(_, ans)| ans == "5").count() as u32;
+            (correct, self.evaluated.len() as u32)
+        }
     }
 
     #[test]
@@ -579,26 +834,20 @@ mod tests {
     #[test]
     fn test_orb_deflection_spawns_30_particles_and_increments_score() {
         let mut bot = DeflectoBot::new();
-        // Clear procedural orbs for clean deterministic test
         bot.orbs.clear();
         bot.spawn_orb(Quadrant::TopLeft, "test", true);
         assert_eq!(bot.orbs.len(), 1);
         assert_eq!(bot.score(), 0);
         assert_eq!(bot.particles().len(), 0);
 
-        // Pass player input with right wrist entering TopLeft
         let input = make_input_with_wrist(Quadrant::TopLeft);
         let status = bot.update(0.016, &input);
 
         assert_eq!(status, GameStatus::Running);
-        // Score incremented!
         assert_eq!(bot.score(), 1);
-        // Orb consumed!
         assert_eq!(bot.orbs.len(), 0);
-        // Exactly 30 particles spawned!
         assert_eq!(bot.particles().len(), PARTICLES_PER_EXPLOSION);
         assert_eq!(bot.particles().len(), 30);
-        // Screen punch triggered!
         assert!(bot.punch_intensity() > 0.9);
     }
 
@@ -629,7 +878,6 @@ mod tests {
         assert_eq!(bot.particles().len(), 1);
 
         let empty_input = PlayerInput::empty(0.0);
-        // Advance past lifetime
         bot.update(0.3, &empty_input);
         assert_eq!(bot.particles().len(), 0);
     }
@@ -640,7 +888,6 @@ mod tests {
         bot.orbs.clear();
         bot.spawn_orb(Quadrant::TopRight, "", true);
 
-        // Wrist in TopRight but with low confidence below threshold
         let mut keypoints = [Keypoint::ZERO; KEYPOINT_COUNT];
         keypoints[COCO_RIGHT_WRIST] = Keypoint::new(0.75, 0.25, 0.1);
         let skel = Skeleton::new(1, keypoints);
@@ -648,7 +895,6 @@ mod tests {
 
         bot.update(0.016, &input);
 
-        // Orb should NOT be deflected
         assert_eq!(bot.score(), 0);
         assert_eq!(bot.orbs.len(), 1);
         assert_eq!(bot.particles().len(), 0);
@@ -663,5 +909,35 @@ mod tests {
         bot.init();
         assert_eq!(bot.score(), 0);
         assert_eq!(bot.orbs().len(), 1);
+    }
+
+    #[test]
+    fn test_learning_mode_initialization_and_evaluation() {
+        let session = Box::new(MockSession::new());
+        let mut bot = DeflectoBot::new_learning(session);
+        bot.init();
+
+        assert!(bot.is_learning_mode());
+        assert_eq!(bot.current_prompt(), Some("2 + 3 = ?".to_string()));
+        assert_eq!(bot.orbs().len(), 2);
+
+        // Quadrant 1 has distractor "4" (incorrect)
+        let wrong_input = make_input_with_wrist(Quadrant::TopRight);
+        bot.update(0.016, &wrong_input);
+
+        // Incorrect deflection: score does not increase, soft dissolve particles spawned
+        assert_eq!(bot.score(), 0);
+        assert!(!bot.particles().is_empty());
+        // Correct orb is still alive!
+        assert_eq!(bot.orbs().len(), 1);
+        assert_eq!(bot.orbs()[0].value_text, "5");
+
+        // Now hit Quadrant 0 with correct answer "5"
+        let correct_input = make_input_with_wrist(Quadrant::TopLeft);
+        bot.update(0.016, &correct_input);
+
+        // Correct deflection: score incremented, gold particles spawned, orbs cleared
+        assert_eq!(bot.score(), 1);
+        assert_eq!(bot.orbs().len(), 0);
     }
 }
