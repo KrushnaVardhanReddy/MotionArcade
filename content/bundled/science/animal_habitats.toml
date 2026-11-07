@@ -1,0 +1,112 @@
+[pack]
+id = "science-animal-habitats"
+title = "Animal Habitats (Ocean, Jungle, Desert)"
+subject = "science"
+age_band = "5-8"
+reading_required = true
+offline = true
+
+[[items]]
+id = "ocean-clownfish"
+prompt = "What is the natural habitat of a clownfish?"
+answer = "Ocean"
+distractors = ["Desert", "Jungle", "Forest"]
+skill = "ocean-habitats"
+
+[[items]]
+id = "ocean-whale"
+prompt = "Which large mammal lives in the ocean?"
+answer = "Whale"
+distractors = ["Elephant", "Camel", "Bear"]
+skill = "ocean-animals"
+
+[[items]]
+id = "ocean-dolphin"
+prompt = "Where do dolphins swim and hunt?"
+answer = "Ocean"
+distractors = ["Desert", "Jungle", "Grassland"]
+skill = "ocean-habitats"
+
+[[items]]
+id = "ocean-octopus"
+prompt = "Which eight-armed creature lives in the ocean?"
+answer = "Octopus"
+distractors = ["Spider", "Scorpion", "Beetle"]
+skill = "ocean-animals"
+
+[[items]]
+id = "ocean-sea-turtle"
+prompt = "Where does a sea turtle spend most of its life?"
+answer = "Ocean"
+distractors = ["Desert", "Jungle", "Mountain"]
+skill = "ocean-habitats"
+
+[[items]]
+id = "jungle-toucan"
+prompt = "Where does a colorful toucan live?"
+answer = "Jungle"
+distractors = ["Desert", "Ocean", "Tundra"]
+skill = "jungle-habitats"
+
+[[items]]
+id = "jungle-jaguar"
+prompt = "What is the habitat of a spotted jaguar?"
+answer = "Jungle"
+distractors = ["Desert", "Ocean", "Arctic"]
+skill = "jungle-habitats"
+
+[[items]]
+id = "jungle-monkey"
+prompt = "Which animal swings through jungle trees?"
+answer = "Monkey"
+distractors = ["Camel", "Dolphin", "Penguin"]
+skill = "jungle-animals"
+
+[[items]]
+id = "jungle-frog"
+prompt = "Where does the poison dart frog live?"
+answer = "Jungle"
+distractors = ["Desert", "Ocean", "Cave"]
+skill = "jungle-habitats"
+
+[[items]]
+id = "jungle-tiger"
+prompt = "Which striped big cat hunts in the Asian jungle?"
+answer = "Tiger"
+distractors = ["Polar bear", "Seal", "Camel"]
+skill = "jungle-animals"
+
+[[items]]
+id = "desert-camel"
+prompt = "Where does a two-humped camel live?"
+answer = "Desert"
+distractors = ["Ocean", "Jungle", "Swamp"]
+skill = "desert-habitats"
+
+[[items]]
+id = "desert-fennec-fox"
+prompt = "Which big-eared animal lives in sandy desert burrows?"
+answer = "Fennec fox"
+distractors = ["Walrus", "Otter", "Penguin"]
+skill = "desert-animals"
+
+[[items]]
+id = "desert-rattlesnake"
+prompt = "Where is a sidewinder rattlesnake found?"
+answer = "Desert"
+distractors = ["Ocean", "Jungle", "Rainforest"]
+skill = "desert-habitats"
+
+[[items]]
+id = "desert-humps"
+prompt = "Which animal stores fat in humps to survive in the desert?"
+answer = "Camel"
+distractors = ["Horse", "Gorilla", "Elephant"]
+skill = "desert-animals"
+
+[[items]]
+id = "desert-scorpion"
+prompt = "Which habitat is known for sand dunes and scorpions?"
+answer = "Desert"
+distractors = ["Ocean", "Jungle", "Wetland"]
+skill = "desert-habitats"

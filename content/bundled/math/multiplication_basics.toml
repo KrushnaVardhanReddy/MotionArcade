@@ -1,0 +1,147 @@
+[pack]
+id = "math-multiplication-basics"
+title = "Multiplication Basics (2x, 5x, 10x)"
+subject = "math"
+age_band = "7-9"
+reading_required = false
+offline = true
+
+[[items]]
+id = "mult-2x2"
+prompt = "2 x 2"
+answer = "4"
+distractors = ["2", "6", "8"]
+skill = "multiplication-2s"
+
+[[items]]
+id = "mult-2x3"
+prompt = "2 x 3"
+answer = "6"
+distractors = ["5", "8", "9"]
+skill = "multiplication-2s"
+
+[[items]]
+id = "mult-2x4"
+prompt = "2 x 4"
+answer = "8"
+distractors = ["6", "10", "12"]
+skill = "multiplication-2s"
+
+[[items]]
+id = "mult-2x5"
+prompt = "2 x 5"
+answer = "10"
+distractors = ["7", "12", "15"]
+skill = "multiplication-2s"
+
+[[items]]
+id = "mult-2x6"
+prompt = "2 x 6"
+answer = "12"
+distractors = ["10", "14", "16"]
+skill = "multiplication-2s"
+
+[[items]]
+id = "mult-2x7"
+prompt = "2 x 7"
+answer = "14"
+distractors = ["12", "16", "18"]
+skill = "multiplication-2s"
+
+[[items]]
+id = "mult-2x8"
+prompt = "2 x 8"
+answer = "16"
+distractors = ["14", "18", "20"]
+skill = "multiplication-2s"
+
+[[items]]
+id = "mult-5x2"
+prompt = "5 x 2"
+answer = "10"
+distractors = ["7", "15", "20"]
+skill = "multiplication-5s"
+
+[[items]]
+id = "mult-5x3"
+prompt = "5 x 3"
+answer = "15"
+distractors = ["10", "20", "25"]
+skill = "multiplication-5s"
+
+[[items]]
+id = "mult-5x4"
+prompt = "5 x 4"
+answer = "20"
+distractors = ["15", "25", "30"]
+skill = "multiplication-5s"
+
+[[items]]
+id = "mult-5x5"
+prompt = "5 x 5"
+answer = "25"
+distractors = ["20", "30", "35"]
+skill = "multiplication-5s"
+
+[[items]]
+id = "mult-5x6"
+prompt = "5 x 6"
+answer = "30"
+distractors = ["25", "35", "40"]
+skill = "multiplication-5s"
+
+[[items]]
+id = "mult-5x7"
+prompt = "5 x 7"
+answer = "35"
+distractors = ["30", "40", "45"]
+skill = "multiplication-5s"
+
+[[items]]
+id = "mult-5x8"
+prompt = "5 x 8"
+answer = "40"
+distractors = ["35", "45", "50"]
+skill = "multiplication-5s"
+
+[[items]]
+id = "mult-10x2"
+prompt = "10 x 2"
+answer = "20"
+distractors = ["12", "30", "40"]
+skill = "multiplication-10s"
+
+[[items]]
+id = "mult-10x3"
+prompt = "10 x 3"
+answer = "30"
+distractors = ["20", "25", "40"]
+skill = "multiplication-10s"
+
+[[items]]
+id = "mult-10x4"
+prompt = "10 x 4"
+answer = "40"
+distractors = ["30", "45", "50"]
+skill = "multiplication-10s"
+
+[[items]]
+id = "mult-10x5"
+prompt = "10 x 5"
+answer = "50"
+distractors = ["40", "45", "60"]
+skill = "multiplication-10s"
+
+[[items]]
+id = "mult-10x6"
+prompt = "10 x 6"
+answer = "60"
+distractors = ["50", "70", "80"]
+skill = "multiplication-10s"
+
+[[items]]
+id = "mult-10x10"
+prompt = "10 x 10"
+answer = "100"
+distractors = ["80", "90", "110"]
+skill = "multiplication-10s"

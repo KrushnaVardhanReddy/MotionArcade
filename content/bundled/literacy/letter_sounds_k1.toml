@@ -1,0 +1,189 @@
+[pack]
+id = "literacy-letter-sounds-k1"
+title = "Letter Sounds & Phonics (K–1)"
+subject = "literacy"
+age_band = "4-6"
+reading_required = false
+offline = true
+
+[[items]]
+id = "letter-sound-a"
+prompt = "Starts like: Apple (/æ/)"
+answer = "A"
+distractors = ["B", "E", "O"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-b"
+prompt = "Starts like: Bear (/b/)"
+answer = "B"
+distractors = ["D", "P", "T"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-c"
+prompt = "Starts like: Cat (/k/)"
+answer = "C"
+distractors = ["G", "K", "S"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-d"
+prompt = "Starts like: Dog (/d/)"
+answer = "D"
+distractors = ["B", "P", "T"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-e"
+prompt = "Starts like: Elephant (/ɛ/)"
+answer = "E"
+distractors = ["A", "I", "U"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-f"
+prompt = "Starts like: Fish (/f/)"
+answer = "F"
+distractors = ["V", "T", "H"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-g"
+prompt = "Starts like: Goat (/ɡ/)"
+answer = "G"
+distractors = ["C", "J", "Q"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-h"
+prompt = "Starts like: Hat (/h/)"
+answer = "H"
+distractors = ["F", "N", "W"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-i"
+prompt = "Starts like: Igloo (/ɪ/)"
+answer = "I"
+distractors = ["E", "L", "O"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-j"
+prompt = "Starts like: Jam (/dʒ/)"
+answer = "J"
+distractors = ["G", "Y", "Z"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-k"
+prompt = "Starts like: Kangaroo (/k/)"
+answer = "K"
+distractors = ["C", "H", "R"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-l"
+prompt = "Starts like: Lion (/l/)"
+answer = "L"
+distractors = ["I", "R", "T"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-m"
+prompt = "Starts like: Monkey (/m/)"
+answer = "M"
+distractors = ["N", "W", "V"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-n"
+prompt = "Starts like: Nest (/n/)"
+answer = "N"
+distractors = ["M", "U", "H"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-o"
+prompt = "Starts like: Octopus (/ɒ/)"
+answer = "O"
+distractors = ["A", "C", "U"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-p"
+prompt = "Starts like: Pig (/p/)"
+answer = "P"
+distractors = ["B", "D", "Q"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-q"
+prompt = "Starts like: Queen (/kw/)"
+answer = "Q"
+distractors = ["C", "K", "O"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-r"
+prompt = "Starts like: Rabbit (/r/)"
+answer = "R"
+distractors = ["B", "P", "L"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-s"
+prompt = "Starts like: Sun (/s/)"
+answer = "S"
+distractors = ["C", "Z", "X"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-t"
+prompt = "Starts like: Tiger (/t/)"
+answer = "T"
+distractors = ["D", "F", "L"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-u"
+prompt = "Starts like: Umbrella (/ʌ/)"
+answer = "U"
+distractors = ["A", "O", "V"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-v"
+prompt = "Starts like: Van (/v/)"
+answer = "V"
+distractors = ["F", "W", "U"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-w"
+prompt = "Starts like: Whale (/w/)"
+answer = "W"
+distractors = ["M", "V", "U"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-x"
+prompt = "Letter for /ks/ sound (Fox)"
+answer = "X"
+distractors = ["S", "Z", "K"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-y"
+prompt = "Starts like: Yo-yo (/j/)"
+answer = "Y"
+distractors = ["I", "J", "U"]
+skill = "phonics-beginning-sounds"
+
+[[items]]
+id = "letter-sound-z"
+prompt = "Starts like: Zebra (/z/)"
+answer = "Z"
+distractors = ["S", "X", "C"]
+skill = "phonics-beginning-sounds"
