@@ -1,0 +1,23 @@
+# Task Prompt: Wire Audio into Deflecto-Bot and Banana Grab
+
+## Goal
+Implement Spec 008 / Contract 008:
+Connect `crates/audio` into `crates/games/deflecto_bot` and `crates/games/banana_grab`.
+
+---
+
+## File Scope (Strictly isolated to games/):
+- `crates/games/deflecto_bot/Cargo.toml` (Add `audio = { path = "../../audio" }`)
+- `crates/games/deflecto_bot/src/lib.rs` (Add `with_audio(Arc<AudioMixer>)`, trigger `DeflectChime { pan }`, `GentleWobble`, `CorrectFanfare`)
+- `crates/games/banana_grab/Cargo.toml` (Add `audio = { path = "../../audio" }`)
+- `crates/games/banana_grab/src/lib.rs` (Add `with_audio(Arc<AudioMixer>)`, trigger `BananaChomp`)
+- Existing tests in both crates to ensure they pass.
+
+DO NOT touch `crates/app/src/main.rs`.
+
+---
+
+## Verification Gate
+- `cargo check -p deflecto_bot -p banana_grab`
+- `cargo test -p deflecto_bot -p banana_grab`
+- `cargo clippy -p deflecto_bot -p banana_grab --all-targets -- -D warnings`

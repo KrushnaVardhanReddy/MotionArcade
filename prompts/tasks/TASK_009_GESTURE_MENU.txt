@@ -1,0 +1,23 @@
+# Task Prompt: Implement Hands-Free Gesture Menu in crates/app
+
+## Goal
+Implement Spec 009 / Contract 009:
+Add `crates/app/src/menu.rs` and update `crates/app/src/main.rs` to allow children to select between **Deflecto-Bot** and **Banana Grab** using a hands-free 1.0s dwell gesture.
+
+---
+
+## File Scope (Strictly isolated to crates/app/):
+- `crates/app/Cargo.toml` (Add `banana_grab = { path = "../games/banana_grab" }` and `audio = { path = "../audio" }`)
+- `crates/app/src/menu.rs` (GestureMenu, portal coordinates, dwell progress)
+- `crates/app/src/lib.rs` (Export `menu`)
+- `crates/app/src/main.rs` (App state machine: Menu -> InGame -> Menu)
+- `crates/app/tests/menu_test.rs` (Headless verification of dwell timer transitions)
+
+DO NOT touch `crates/games/deflecto_bot` or `crates/games/banana_grab` (reserved for Agent 1).
+
+---
+
+## Verification Gate
+- `cargo check -p app`
+- `cargo test -p app`
+- `cargo clippy -p app --all-targets -- -D warnings`
