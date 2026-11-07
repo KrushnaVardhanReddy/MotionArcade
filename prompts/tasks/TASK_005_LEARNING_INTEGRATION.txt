@@ -1,0 +1,37 @@
+# Task Prompt: Implement Spec 005 / Contract 005 (Educational Deflecto-Bot)
+
+## Goal
+Bridge `crates/learning` with `crates/games/deflecto_bot` and `crates/app`.
+When Deflecto-Bot runs in educational mode, incoming flying orbs carry answers from a TOML content pack (like `number_facts_k2.toml`), with prompt displayed at the top (`"4 + 3 = ?"`). Correct and incorrect deflections update the Leitner spaced repetition engine.
+
+---
+
+## File Scope
+- `crates/learning/src/bridge.rs` (Implement `LearningSessionPort`, `QuestionWave`, and adapter over `LeitnerScheduler`)
+- `crates/learning/src/lib.rs` (Export bridge types)
+- `crates/games/deflecto_bot/Cargo.toml` (Add `learning = { path = "../../learning" }`)
+- `crates/games/deflecto_bot/src/lib.rs` (Add `new_learning()`, populate orbs with `QuestionWave` choices, display prompt text, evaluate hits)
+- `crates/app/Cargo.toml` (Add `learning = { path = "../learning" }`)
+- `crates/app/src/main.rs` (Load bundled math pack by default and launch `DeflectoBot::new_learning()`)
+- `crates/games/deflecto_bot/tests/learning_integration_test.rs` (End-to-end headless simulation of answering math facts)
+
+---
+
+## Technical Constraints (Zero-Panic Guarantee)
+1. **Zero `.unwrap()` or `.expect()` in non-test production code.**
+2. Deflecto-Bot must still be playable in pure arcade mode (`new_arcade()` or fallback if no pack loaded).
+3. If an incorrect orb is hit:
+   - Soft dissolve animation (do not crash, do not terminate session).
+   - Record incorrect attempt to Leitner scheduler.
+   - Child can still hit the correct orb.
+
+---
+
+## Verification Gate
+Before completing, verify:
+```bash
+cargo check --workspace
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+```
+Report test output and summary back upon completion.
