@@ -12,11 +12,13 @@
 //! - Thread-safe models: all types implement `Send + Sync + 'static`.
 
 pub mod boundary;
+pub mod game;
 pub mod ports;
 pub mod pose;
 pub mod smoothing;
 
 pub use boundary::{FloorBoundary, FloorCylinderBoundary};
+pub use game::{CanvasPort, Game, GameStatus, RenderContext};
 pub use ports::input::{PoseStreamPort, TrackingError};
 pub use ports::mock::MockFilePoseStreamAdapter;
 pub use pose::{Keypoint, PlayerInput, Skeleton};

@@ -18,3 +18,4 @@ The app must run a native window rendering at 60 FPS that can consume the mock i
 ## Verification Gate
 - `cargo check -p deflecto_bot -p app` passes cleanly.
 - `cargo test --workspace` passes with 0 failures.
+

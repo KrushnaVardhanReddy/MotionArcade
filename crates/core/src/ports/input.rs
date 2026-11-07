@@ -1,4 +1,4 @@
-use crate::pose::PlayerInput;
+pub use crate::pose::PlayerInput;
 use thiserror::Error;
 
 /// Error conditions that can occur during pose stream ingestion and inference.
