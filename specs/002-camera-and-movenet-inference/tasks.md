@@ -23,3 +23,4 @@
 - [ ] **Task 2.4: Integrate with `PoseStreamPort`**
   - Implement `PoseStreamPort` for `crates/input`.
   - Provide fallback to mock adapter if no webcam is detected.
+

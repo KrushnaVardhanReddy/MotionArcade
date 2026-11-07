@@ -24,3 +24,4 @@ Provide the decoupled educational engine: TOML parsing, CSV import, Leitner 5-bo
 - [ ] Loads bundled packs from `content/bundled/`.
 - [ ] `--validate-content` flag flags schema mismatches or missing distractors.
 - [ ] Correct/incorrect attempts update Leitner boxes deterministically.
+

@@ -28,3 +28,4 @@
 - [ ] **Task 1.5: Mock Inbound Adapter**
   - Implement `MockFilePoseStreamAdapter` that reads recorded JSON pose sequences for headless CI.
   - Write test verifying mock streaming works without camera hardware.
+

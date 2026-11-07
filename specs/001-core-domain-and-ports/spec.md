@@ -67,3 +67,4 @@ pub trait GameCanvasPort {
 - [ ] Unit tests verify One Euro smoothing reduces jitter by >60% on noisy mock sine-wave data.
 - [ ] Floor cylinder filter successfully drops phantom skeletons outside the bounding radius.
 - [ ] Zero unwrap guarantee: all error paths return `Result<T, CoreError>`.
+

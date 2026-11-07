@@ -53,3 +53,4 @@ Before committing or submitting changes:
 - Performance benchmarks and pipeline assertions must record machine-readable receipts into `reports/<task-name>/`:
   - `verification.json`: FPS, latency, and keypoint confidence metrics.
   - Summary report in `reports/<TASK_NAME>_REPORT.md`.
+

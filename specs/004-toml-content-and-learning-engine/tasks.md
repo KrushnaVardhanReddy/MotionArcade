@@ -24,3 +24,4 @@
 - [ ] **Task 4.4: Local Profile & Session Reports**
   - Store progress JSON locally per student nickname / avatar.
   - Generate CSV session summary for classroom teachers.
+

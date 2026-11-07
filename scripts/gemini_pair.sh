@@ -26,3 +26,4 @@ if [ $# -eq 0 ]; then
 else
     gemini --system-instruction "$SYSTEM_PROMPT" "$@"
 fi
+

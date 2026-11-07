@@ -22,3 +22,4 @@ Provide an asynchronous inbound adapter implementing `PoseStreamPort` using `nok
 - [ ] Loads `movenet_lightning.onnx` from `assets/models/`.
 - [ ] Feeds 30 fps RGB frames into inference loop without memory leaks or allocations in the hot loop.
 - [ ] Implements `PoseStreamPort` cleanly.
+
