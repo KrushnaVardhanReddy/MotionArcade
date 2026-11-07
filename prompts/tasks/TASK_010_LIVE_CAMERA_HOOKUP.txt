@@ -1,0 +1,28 @@
+# Task Prompt: Live Hardware Camera Integration in crates/app
+
+## Goal
+Implement Spec 010:
+Connect `crates/input::CameraPoseStreamAdapter` into `crates/app/src/main.rs`.
+
+---
+
+## File Scope (Strictly isolated to crates/app/):
+- `crates/app/Cargo.toml` (Add `input = { path = "../input" }`)
+- `crates/app/src/lib.rs` (Add camera pose source variant)
+- `crates/app/src/main.rs` (Instantiate `CameraPoseStreamAdapter` with fallback)
+- `crates/app/tests/game_loop_test.rs`
+
+DO NOT touch `content/` or `crates/learning/`.
+
+---
+
+## Technical Constraints (Zero Panic Guarantee)
+1. Must not panic if no webcam device or model file is present (`CameraPoseStreamAdapter::with_mock_fallback` or graceful match).
+2. Zero `.unwrap()` in non-test production code.
+
+---
+
+## Verification Gate
+- `cargo check -p app`
+- `cargo test -p app`
+- `cargo clippy -p app --all-targets -- -D warnings`

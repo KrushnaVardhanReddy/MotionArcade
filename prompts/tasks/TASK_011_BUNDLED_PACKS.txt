@@ -1,0 +1,29 @@
+# Task Prompt: Author and Validate Multi-Subject Bundled Content Packs
+
+## Goal
+Implement Spec 011:
+Create and validate 3 official bundled lesson packs for literacy, multiplication, and science.
+
+---
+
+## File Scope (Strictly isolated to content/ and learning tests/):
+- `content/bundled/literacy/letter_sounds_k1.toml`
+- `content/bundled/math/multiplication_basics.toml`
+- `content/bundled/science/animal_habitats.toml`
+- `crates/learning/tests/bundled_packs_validation_test.rs`
+
+DO NOT touch `crates/app/`.
+
+---
+
+## Technical Constraints
+1. Each pack must follow `crates/learning::pack::ContentPack` schema:
+   - Header with `id`, `title`, `subject`, `age_band`, `reading_required`, `offline = true`.
+   - Items with unique IDs, prompt, answer, and 3 distinct distractors.
+2. Integration test loads and validates each pack via `ContentPack::validate()`.
+
+---
+
+## Verification Gate
+- `cargo test -p learning`
+- `cargo clippy -p learning --all-targets -- -D warnings`
