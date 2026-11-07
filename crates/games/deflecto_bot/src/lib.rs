@@ -1,7 +1,9 @@
+use audio::{AudioMixer, SoundEffect};
 use core::game::{Game, GameStatus, RenderContext};
 use core::pose::{PlayerInput, COCO_LEFT_WRIST, COCO_RIGHT_WRIST};
 use learning::bridge::{LearningSessionPort, QuestionWave};
 use std::f32::consts::TAU;
+use std::sync::Arc;
 
 /// Number of particles spawned per orb explosion.
 pub const PARTICLES_PER_EXPLOSION: usize = 30;
@@ -192,6 +194,7 @@ pub struct DeflectoBot {
     total_time: f32,
     session: Option<Box<dyn LearningSessionPort>>,
     active_wave: Option<QuestionWave>,
+    audio_mixer: Option<Arc<AudioMixer>>,
 }
 
 impl std::fmt::Debug for DeflectoBot {
@@ -247,7 +250,14 @@ impl DeflectoBot {
             total_time: 0.0,
             session: None,
             active_wave: None,
+            audio_mixer: None,
         }
+    }
+
+    /// Attaches an audio mixer for sound effects and positional chimes.
+    pub fn with_audio(mut self, mixer: Arc<AudioMixer>) -> Self {
+        self.audio_mixer = Some(mixer);
+        self
     }
 
     pub fn score(&self) -> u32 {
@@ -560,9 +570,21 @@ impl Game for DeflectoBot {
                     self.explode_orb(&removed);
                     answered_correctly = true;
                     correct_wave_id = removed.item_id;
+
+                    if let Some(mixer) = &self.audio_mixer {
+                        let pan = match removed.quadrant {
+                            Quadrant::TopLeft | Quadrant::BottomLeft => -0.75,
+                            Quadrant::TopRight | Quadrant::BottomRight => 0.75,
+                        };
+                        mixer.play(SoundEffect::DeflectChime { pan });
+                    }
                 } else {
                     let removed = self.orbs.remove(idx);
                     self.dissolve_orb(&removed);
+
+                    if let Some(mixer) = &self.audio_mixer {
+                        mixer.play(SoundEffect::GentleWobble);
+                    }
                 }
             }
         }
@@ -576,6 +598,10 @@ impl Game for DeflectoBot {
                 self.orbs.clear();
             }
             self.spawn_timer = 0.0;
+
+            if let Some(mixer) = &self.audio_mixer {
+                mixer.play(SoundEffect::CorrectFanfare);
+            }
         }
 
         // 3. Remove missed orbs that passed beyond the strike line

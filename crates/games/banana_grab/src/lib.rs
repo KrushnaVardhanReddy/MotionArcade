@@ -4,9 +4,11 @@
 //! Features falling tropical fruits, high-reach fruit collection, cartoon leaf FX,
 //! and vine ducking mechanics.
 
+use audio::{AudioMixer, SoundEffect};
 use core::game::{Game, GameStatus, RenderContext};
 use core::pose::{Keypoint, PlayerInput, Skeleton};
 use std::f32::consts::TAU;
+use std::sync::Arc;
 
 /// Minimum keypoint confidence for wrist tracking to register grabs.
 pub const MIN_WRIST_CONFIDENCE: f32 = 0.25;
@@ -222,6 +224,7 @@ pub struct BananaGrab {
     pub spawn_timer: f32,
     pub spawn_interval: f32,
     pub total_time: f32,
+    pub audio_mixer: Option<Arc<AudioMixer>>,
 }
 
 impl Default for BananaGrab {
@@ -250,9 +253,16 @@ impl BananaGrab {
             spawn_timer: 0.0,
             spawn_interval: 1.4,
             total_time: 0.0,
+            audio_mixer: None,
         };
         game.init();
         game
+    }
+
+    /// Attaches an audio mixer for sound effects.
+    pub fn with_audio(mut self, mixer: Arc<AudioMixer>) -> Self {
+        self.audio_mixer = Some(mixer);
+        self
     }
 
     pub fn score(&self) -> u32 {
@@ -354,6 +364,11 @@ impl BananaGrab {
         self.bananas_collected = self.bananas_collected.saturating_add(1);
         self.score = self.score.saturating_add(1);
         self.spawn_leaf_burst(fruit.x, fruit.y);
+
+        if let Some(mixer) = &self.audio_mixer {
+            mixer.play(SoundEffect::BananaChomp);
+        }
+
         Some(fruit)
     }
 

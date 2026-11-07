@@ -6,4 +6,5 @@ license.workspace = true
 
 [dependencies]
 core = { path = "../../core" }
+audio = { path = "../../audio" }
 tracing.workspace = true

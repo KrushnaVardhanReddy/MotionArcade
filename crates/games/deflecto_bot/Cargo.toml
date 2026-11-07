@@ -8,4 +8,5 @@ license.workspace = true
 [dependencies]
 core = { path = "../../core" }
 learning = { path = "../../learning" }
+audio = { path = "../../audio" }
 tracing.workspace = true
