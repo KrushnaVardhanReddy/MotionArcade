@@ -2,6 +2,7 @@
 members = [
     "crates/core",
     "crates/input",
+    "crates/audio",
     "crates/learning",
     "crates/games/deflecto_bot",
     "crates/games/banana_grab",

@@ -1,0 +1,11 @@
+[package]
+name = "audio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+core = { path = "../core" }
+thiserror.workspace = true
+tracing.workspace = true
+rodio = { version = "0.19", default-features = false, features = ["vorbis"] }
