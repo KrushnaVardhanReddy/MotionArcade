@@ -35,6 +35,15 @@ pub struct AudioMixer {
     worker_handle: Option<Arc<std::sync::Mutex<Option<JoinHandle<()>>>>>,
 }
 
+impl std::fmt::Debug for AudioMixer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AudioMixer")
+            .field("is_headless", &self.is_headless)
+            .field("play_count", &self.play_count)
+            .finish()
+    }
+}
+
 impl AudioMixer {
     /// Create a new `AudioMixer`, attempting to initialize the system audio output device.
     ///

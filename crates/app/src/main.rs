@@ -1,16 +1,22 @@
-use app::{draw_floor_ring, draw_neon_player_silhouette, MacroquadCanvas, PoseSource};
+use app::{
+    check_exit_gesture, draw_floor_ring, draw_neon_player_silhouette, GestureMenu,
+    MacroquadCanvas, PoseSource, SelectedGame, EXIT_GESTURE_DWELL_SECONDS,
+};
+use audio::{AudioMixer, SoundEffect};
+use banana_grab::BananaGrab;
 use clap::Parser;
-use core::game::{Game, RenderContext};
+use core::game::{CanvasPort, Game, RenderContext};
 use core::pose::PlayerInput;
 use deflecto_bot::DeflectoBot;
 use macroquad::prelude::*;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 /// Command line arguments for MotionArcade native runner.
 #[derive(Parser, Debug)]
 #[command(
     name = "motion-arcade",
-    about = "MotionArcade native game loop and keypoint visualizer"
+    about = "MotionArcade native game loop and hands-free gesture portal runner"
 )]
 struct CliArgs {
     /// Path to pre-recorded JSONL pose stream file for deterministic playback
@@ -29,6 +35,10 @@ struct CliArgs {
     #[arg(long)]
     arcade: bool,
 
+    /// Initial game mode: "menu" (default), "deflecto", or "banana"
+    #[arg(long, default_value = "menu")]
+    game: String,
+
     /// Window width in pixels
     #[arg(long, default_value_t = 1280)]
     width: i32,
@@ -38,14 +48,59 @@ struct CliArgs {
     height: i32,
 }
 
+/// App mode state machine.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AppState {
+    Menu,
+    Deflecto,
+    Banana,
+}
+
 fn window_conf() -> Conf {
     Conf {
-        window_title: "MotionArcade - Deflecto-Bot Native Runner".to_string(),
+        window_title: "MotionArcade - Hands-Free Gesture Arcade".to_string(),
         window_width: 1280,
         window_height: 720,
         high_dpi: true,
         window_resizable: true,
         ..Default::default()
+    }
+}
+
+/// Helper to render the exit gesture countdown progress bar at the top of the screen.
+fn draw_exit_progress(
+    elapsed: f32,
+    target: f32,
+    sw: f32,
+    _sh: f32,
+    canvas: &mut dyn CanvasPort,
+) {
+    let progress = (elapsed / target).clamp(0.0, 1.0);
+    let bar_width = 320.0;
+    let bar_height = 14.0;
+    let bx = sw * 0.5 - bar_width * 0.5;
+    let by = 35.0;
+
+    canvas.draw_text(
+        "RETURNING TO MENU (HOLD GESTURE)...",
+        bx - 10.0,
+        by - 12.0,
+        20.0,
+        [1.0, 0.9, 0.3, 0.95],
+    );
+
+    // Background bar
+    canvas.draw_line(bx, by, bx + bar_width, by, bar_height, [0.2, 0.2, 0.3, 0.6]);
+    // Fill progress
+    if progress > 0.005 {
+        canvas.draw_line(
+            bx,
+            by,
+            bx + bar_width * progress,
+            by,
+            bar_height,
+            [1.0, 0.85, 0.2, 0.95],
+        );
     }
 }
 
@@ -76,9 +131,11 @@ async fn main() {
         }
     };
 
-    let mut game = if args.arcade {
+    let audio_mixer = Arc::new(AudioMixer::new());
+
+    let mut deflecto_game = if args.arcade {
         tracing::info!("Arcade mode explicitly requested via --arcade");
-        DeflectoBot::new_arcade()
+        DeflectoBot::new_arcade().with_audio(Arc::clone(&audio_mixer))
     } else {
         let pack_path = if let Some(p) = &args.pack {
             p.clone()
@@ -102,7 +159,7 @@ async fn main() {
             match learning::bridge::LeitnerLearningSession::from_file(&pack_path) {
                 Ok(session) => {
                     tracing::info!("Loaded educational content pack from {:?}", pack_path);
-                    DeflectoBot::new_learning(Box::new(session))
+                    DeflectoBot::new_learning(Box::new(session)).with_audio(Arc::clone(&audio_mixer))
                 }
                 Err(e) => {
                     tracing::warn!(
@@ -110,7 +167,7 @@ async fn main() {
                         pack_path,
                         e
                     );
-                    DeflectoBot::new_arcade()
+                    DeflectoBot::new_arcade().with_audio(Arc::clone(&audio_mixer))
                 }
             }
         } else {
@@ -118,10 +175,23 @@ async fn main() {
                 "Content pack not found at {:?}. Falling back to arcade mode.",
                 pack_path
             );
-            DeflectoBot::new_arcade()
+            DeflectoBot::new_arcade().with_audio(Arc::clone(&audio_mixer))
         }
     };
-    game.init();
+    deflecto_game.init();
+
+    let mut banana_game = BananaGrab::new().with_audio(Arc::clone(&audio_mixer));
+    banana_game.init();
+
+    let mut menu = GestureMenu::new();
+
+    let initial_state = match args.game.to_lowercase().as_str() {
+        "deflecto" | "deflecto_bot" | "deflectobot" => AppState::Deflecto,
+        "banana" | "banana_grab" | "bananagrab" => AppState::Banana,
+        _ => AppState::Menu,
+    };
+    let mut state = initial_state;
+    let mut exit_gesture_timer = 0.0f32;
 
     let mut canvas = MacroquadCanvas;
     let fixed_dt = 1.0 / 60.0;
@@ -130,7 +200,7 @@ async fn main() {
     let mut frame_count: u32 = 0;
     let mut latest_input = PlayerInput::empty(0.0);
 
-    tracing::info!("Entering locked 60 FPS native game loop");
+    tracing::info!("Entering locked 60 FPS native game loop in state {:?}", state);
 
     loop {
         let frame_time = get_frame_time().min(0.1);
@@ -147,7 +217,84 @@ async fn main() {
                 }
             }
 
-            game.update(fixed_dt, &latest_input);
+            // Keyboard navigation helpers (Escape / M to menu, 1 for Banana, 2 for Deflecto)
+            if is_key_pressed(KeyCode::Escape) || is_key_pressed(KeyCode::M) {
+                if state != AppState::Menu {
+                    tracing::info!("Escape/M key pressed: returning to menu");
+                    state = AppState::Menu;
+                    menu.reset();
+                    exit_gesture_timer = 0.0;
+                }
+            } else if is_key_pressed(KeyCode::Key1) {
+                tracing::info!("Key 1 pressed: launching Banana Grab");
+                state = AppState::Banana;
+                banana_game.init();
+                exit_gesture_timer = 0.0;
+            } else if is_key_pressed(KeyCode::Key2) {
+                tracing::info!("Key 2 pressed: launching Deflecto-Bot");
+                state = AppState::Deflecto;
+                deflecto_game.init();
+                exit_gesture_timer = 0.0;
+            }
+
+            // State Machine Transition Logic
+            match state {
+                AppState::Menu => {
+                    exit_gesture_timer = 0.0;
+                    let selected = menu.update(fixed_dt, &latest_input);
+                    match selected {
+                        SelectedGame::BananaGrab => {
+                            tracing::info!("Menu: Banana Grab selected via 1.0s dwell gesture!");
+                            audio_mixer.play(SoundEffect::BananaChomp);
+                            state = AppState::Banana;
+                            banana_game.init();
+                            menu.reset();
+                        }
+                        SelectedGame::DeflectoBot => {
+                            tracing::info!("Menu: Deflecto-Bot selected via 1.0s dwell gesture!");
+                            audio_mixer.play(SoundEffect::CorrectFanfare);
+                            state = AppState::Deflecto;
+                            deflecto_game.init();
+                            menu.reset();
+                        }
+                        SelectedGame::None => {}
+                    }
+                }
+                AppState::Deflecto => {
+                    deflecto_game.update(fixed_dt, &latest_input);
+
+                    // Check exit gesture (T-pose or both arms up for 3.0s)
+                    if check_exit_gesture(&latest_input) {
+                        exit_gesture_timer += fixed_dt;
+                        if exit_gesture_timer >= EXIT_GESTURE_DWELL_SECONDS {
+                            tracing::info!("Exit gesture sustained for 3.0s: returning to menu");
+                            audio_mixer.play(SoundEffect::GentleWobble);
+                            state = AppState::Menu;
+                            menu.reset();
+                            exit_gesture_timer = 0.0;
+                        }
+                    } else {
+                        exit_gesture_timer = (exit_gesture_timer - fixed_dt * 2.0).max(0.0);
+                    }
+                }
+                AppState::Banana => {
+                    banana_game.update(fixed_dt, &latest_input);
+
+                    // Check exit gesture (T-pose or both arms up for 3.0s)
+                    if check_exit_gesture(&latest_input) {
+                        exit_gesture_timer += fixed_dt;
+                        if exit_gesture_timer >= EXIT_GESTURE_DWELL_SECONDS {
+                            tracing::info!("Exit gesture sustained for 3.0s: returning to menu");
+                            audio_mixer.play(SoundEffect::GentleWobble);
+                            state = AppState::Menu;
+                            menu.reset();
+                            exit_gesture_timer = 0.0;
+                        }
+                    } else {
+                        exit_gesture_timer = (exit_gesture_timer - fixed_dt * 2.0).max(0.0);
+                    }
+                }
+            }
 
             accumulator -= fixed_dt;
             total_time += fixed_dt;
@@ -157,9 +304,9 @@ async fn main() {
             if let Some(target_frames) = args.test_frames {
                 if frame_count >= target_frames {
                     tracing::info!(
-                        "Completed {} test frames cleanly. Final score: {}",
+                        "Completed {} test frames cleanly in state {:?}",
                         frame_count,
-                        game.score()
+                        state
                     );
                     return;
                 }
@@ -170,24 +317,75 @@ async fn main() {
         let sw = screen_width();
         let sh = screen_height();
 
-        // Cyber arena background
-        clear_background(Color::new(0.02, 0.03, 0.06, 1.0));
-
-        // 1. Draw glowing floor ring (anchor boundary cylinder)
         let floor_cx = sw * 0.5;
         let floor_cy = sh * 0.84;
         let floor_rx = sw * 0.28;
         let floor_ry = sh * 0.11;
-        draw_floor_ring(floor_cx, floor_cy, floor_rx, floor_ry, total_time);
 
-        // 2. Draw neon glowing player silhouette mirroring keypoints
-        for player in &latest_input.players {
-            draw_neon_player_silhouette(player, sw, sh, total_time);
+        match state {
+            AppState::Menu => {
+                // Cyber dark background
+                clear_background(Color::new(0.02, 0.03, 0.06, 1.0));
+
+                // 1. Draw glowing floor ring
+                draw_floor_ring(floor_cx, floor_cy, floor_rx, floor_ry, total_time);
+
+                // 2. Draw neon glowing player silhouette mirroring keypoints
+                for player in &latest_input.players {
+                    draw_neon_player_silhouette(player, sw, sh, total_time);
+                }
+
+                // 3. Draw Gesture Portal Menu
+                let mut ctx = RenderContext::new(sw, sh, fixed_dt, &mut canvas);
+                menu.draw(&mut ctx);
+            }
+            AppState::Deflecto => {
+                // Cyber arena background
+                clear_background(Color::new(0.02, 0.03, 0.06, 1.0));
+
+                draw_floor_ring(floor_cx, floor_cy, floor_rx, floor_ry, total_time);
+
+                for player in &latest_input.players {
+                    draw_neon_player_silhouette(player, sw, sh, total_time);
+                }
+
+                let mut ctx = RenderContext::new(sw, sh, fixed_dt, &mut canvas);
+                deflecto_game.draw(&mut ctx);
+
+                if exit_gesture_timer > 0.0 {
+                    draw_exit_progress(
+                        exit_gesture_timer,
+                        EXIT_GESTURE_DWELL_SECONDS,
+                        sw,
+                        sh,
+                        &mut canvas,
+                    );
+                }
+            }
+            AppState::Banana => {
+                // Tropical jungle background
+                clear_background(Color::new(0.02, 0.05, 0.03, 1.0));
+
+                draw_floor_ring(floor_cx, floor_cy, floor_rx, floor_ry, total_time);
+
+                for player in &latest_input.players {
+                    draw_neon_player_silhouette(player, sw, sh, total_time);
+                }
+
+                let mut ctx = RenderContext::new(sw, sh, fixed_dt, &mut canvas);
+                banana_game.draw(&mut ctx);
+
+                if exit_gesture_timer > 0.0 {
+                    draw_exit_progress(
+                        exit_gesture_timer,
+                        EXIT_GESTURE_DWELL_SECONDS,
+                        sw,
+                        sh,
+                        &mut canvas,
+                    );
+                }
+            }
         }
-
-        // 3. Draw Deflecto-Bot game, orbs, and explosion particles
-        let mut ctx = RenderContext::new(sw, sh, fixed_dt, &mut canvas);
-        game.draw(&mut ctx);
 
         next_frame().await;
     }

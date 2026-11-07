@@ -11,6 +11,13 @@ use macroquad::prelude::*;
 use std::f32::consts::TAU;
 use std::path::Path;
 
+pub mod menu;
+pub use menu::{
+    both_arms_up, check_exit_gesture, is_exit_gesture, is_t_pose, GestureMenu, SelectedGame,
+    DEFAULT_PORTAL_RADIUS, DWELL_TARGET_SECONDS, EXIT_GESTURE_DWELL_SECONDS, LEFT_PORTAL_CENTER,
+    MIN_KEYPOINT_CONFIDENCE, RIGHT_PORTAL_CENTER,
+};
+
 /// Standard COCO skeletal bone connections as (start_index, end_index) tuples.
 pub const SKELETON_BONES: [(usize, usize); 19] = [
     // Head facial landmarks

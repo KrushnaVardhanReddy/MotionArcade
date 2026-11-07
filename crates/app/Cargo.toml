@@ -9,6 +9,8 @@ license.workspace = true
 core = { path = "../core" }
 learning = { path = "../learning" }
 deflecto_bot = { path = "../games/deflecto_bot" }
+banana_grab = { path = "../games/banana_grab" }
+audio = { path = "../audio" }
 macroquad.workspace = true
 clap.workspace = true
 tracing.workspace = true
