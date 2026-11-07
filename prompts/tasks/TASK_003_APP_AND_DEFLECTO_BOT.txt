@@ -1,0 +1,20 @@
+# Task Prompt: Implement Macroquad Native App & Deflecto-Bot Game Loop
+
+## Goal
+Implement `crates/app` and `crates/games/deflecto_bot` based on `contracts/contract_003_game_loop.md`.
+The app must run a native window rendering at 60 FPS that can consume the mock input stream (`--mock-input`), render the neon player skeleton, and simulate Deflecto-Bot with flying orbs and particle explosions.
+
+---
+
+## File Scope
+- `crates/core/src/game.rs` (Game, RenderContext, CanvasPort)
+- `crates/games/deflecto_bot/Cargo.toml`
+- `crates/games/deflecto_bot/src/lib.rs` (DeflectoBot state machine, quadrants, orbs, particles)
+- `crates/app/Cargo.toml`
+- `crates/app/src/main.rs` (Macroquad window loop, skeleton visualizer, HUD)
+
+---
+
+## Verification Gate
+- `cargo check -p deflecto_bot -p app` passes cleanly.
+- `cargo test --workspace` passes with 0 failures.
