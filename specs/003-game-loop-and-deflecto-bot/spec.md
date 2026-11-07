@@ -1,4 +1,4 @@
-# Spec 003: Game Loop, Deflecto-Bot & Synthetic Haptics
+# Spec 003: Game Loop, Deflecto-Bot & Jungle Banana Grab
 
 ## Status
 Draft / In Design
@@ -6,7 +6,9 @@ Draft / In Design
 ---
 
 ## 1. Goal
-Implement the flagship mini-game **Deflecto-Bot** with 60 fps rendering, gesture menus, flying plasma orbs, collision hitboxes, and audio-visual juice.
+Implement the core 60 fps native GPU rendering loop with custom shaders, kid gesture menus, and two flagship theme implementations sharing the same underlying quadrant collision engine:
+1. **Deflecto-Bot (Cyber Robot & Orbs)** — targeted at ages 7–10.
+2. **Jungle Jump / Banana Grab (Monkey & Tropical Fruits)** — targeted at ages 4–7.
 
 ---
 

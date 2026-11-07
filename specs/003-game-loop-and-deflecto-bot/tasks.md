@@ -27,3 +27,8 @@
 - [ ] **Task 3.5: Hands-Free Gesture Menus**
   - Implement hover-to-select dwell button in menu orb.
   - Wave to start round without mouse/keyboard.
+
+- [ ] **Task 3.6: Jungle Banana Grab Theme Skin**
+  - Implement monkey/banana sprite asset variant over the quadrant reach engine.
+  - Add cartoon chomp and tropical leaf particle effects.
+

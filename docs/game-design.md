@@ -53,7 +53,49 @@ When lighting changes, occlusion happens, or a child twists sideways:
 
 ---
 
-## 2. Age Bands & Ergonomics
+## 2. Age Bands, Ergonomics & Themes
+
+MotionArcade supports distinct visual and narrative themes tailored to developmental stages. Because mechanics are decoupled from visuals, the underlying hit detection engine remains identical while art styles adapt:
+
+| Age Band | Primary Themes | Target Tone & Humor | Preferred Mechanics |
+|---|---|---|---|
+| **4–6 (Early Years)** | **Jungle Animals, Dinosaurs, Ocean Friends** | Funny animal sounds, bouncing fruit, cartoon splats | High reaches (banana grabs), big squats (ducking vines), bubble pops |
+| **7–9 (Middle Arcade)** | **Robots, Space Explorers, Superhero Auras** | Energy blasts, laser shields, power-up streaks | Fast quadrant reaches (Deflecto-Bot), platform hopping (River Hop) |
+| **10–12 (Tween/Classroom)** | **Extreme Sports, Ninja Obstacles, Team Relay** | Rhythm combos, high score badges, team challenges | Pose matching (Storm Surge), co-op cargo balancing |
+
+---
+
+## 3. Flagship Game Lineup
+
+Every game works in **Play Mode** (pure arcade fun) or **Learn Mode** (integrated with a TOML content pack).
+
+### A. Jungle Jump: Banana Grab 🐒🍌 (Ages 4–7)
+- **Theme:** The child plays as a nimble monkey in a vibrant jungle canopy!
+- **Play Mode:** Bunches of bananas and golden mangoes fall from treetops. Reach high and stretch laterally to catch delicious fruit while ducking under swinging vines.
+- **Learn Mode:** 
+  - *Math:* The hungry gorilla asks for `6` bananas. Batches of `2`, `3`, and `4` bananas fall—grab the right bunch!
+  - *Phonics:* Fruits carry letters. *"Grab the banana that starts with the sound 'B'!"*
+- **The Juice:** Hilarious cartoon chomp sounds, tropical leaf confetti explosions, and celebratory monkey backflips on correct grabs.
+
+### B. Deflecto-Bot 🤖⚡ (Ages 7–10)
+- **Theme:** Sci-fi cyber arena with a floating robot assistant.
+- **Play Mode:** High-speed plasma orbs fly toward the player; deflect all incoming projectiles across 4 quadrants.
+- **Learn Mode:** Orbs carry answer options. Deflect the correct answer to fuel your laser shield; let incorrect distractors safely pass.
+- **The Juice:** Heavy bass impact chime, golden starburst fireworks, and a glowing neon superhero avatar overlay.
+
+### C. Storm Surge 🌊🥋 (Ages 8–12)
+- **Theme:** Ninja training temple facing moving mystical obstacle walls.
+- **Play Mode:** Moving walls with geometric human cutouts approach; match your body pose (T-pose, squat, high knee) to slip through.
+- **Learn Mode:** Wall cutouts form numbers, letters, or answer slots. Pose into the slot matching the prompt.
+
+### D. River Hop 🐸🪵 (Ages 6–10)
+- **Theme:** River adventure with hopping stones and floating logs.
+- **Play Mode:** Step side-to-side and lean across river platforms to escape rising water.
+- **Learn Mode:** Each floating log carries an answer. Hop onto the correct solution to cross safely.
+
+---
+
+## 4. Age Bands & Ergonomics
 
 | Age Band | Choices | Prompts | Pacing | Target Zones | Session Length |
 |---|---|---|---|---|---|

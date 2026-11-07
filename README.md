@@ -55,6 +55,20 @@ Detailed specifications and technical designs have been split into modular docum
 
 ---
 
+## Included Games & Themes
+
+Mechanics are cleanly decoupled from visual themes. The platform spans multiple age-tailored worlds:
+
+| Game | Theme & Target | Play Mechanic | Learning Integration | Status |
+|---|---|---|---|---|
+| **Jungle Jump (Banana Grab)** | 🐒 **Jungle Animals (Ages 4–7)** | Reach up to snatch falling bananas; duck under vines | Grab the bunch with the right number/letter to feed the hungry gorilla | **Phase 1 Target** |
+| **Deflecto-Bot** | 🤖 **Cyber Arena (Ages 7–10)** | Extend hands to deflect incoming plasma orbs | Deflect orbs carrying the correct answer; let wrong answers pass | **Phase 0 Target** |
+| **River Hop** | 🐸 **River Adventure (Ages 6–10)** | Lean & side-step onto floating river logs | Hop onto logs displaying the correct math solution | Planned |
+| **Storm Surge** | 🥋 **Ninja Temple (Ages 8–12)** | Match body pose to fit through approaching wall cutouts | Strike letter/number shapes or lean into the correct answer slot | Planned |
+| **Cargo Catch** | 📦 **Co-op Factory (Ages 7+)** | 2 players balance a platform with raised hands | Catch items matching specific categories (even numbers, vowels) | Planned |
+
+---
+
 ## Quick Start
 
 ### Prerequisites
