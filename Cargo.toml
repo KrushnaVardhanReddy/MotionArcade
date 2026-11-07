@@ -4,6 +4,7 @@ members = [
     "crates/input",
     "crates/learning",
     "crates/games/deflecto_bot",
+    "crates/games/banana_grab",
     "crates/app",
 ]
 resolver = "2"
