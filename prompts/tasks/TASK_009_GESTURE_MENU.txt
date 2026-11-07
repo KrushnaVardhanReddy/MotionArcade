@@ -21,3 +21,4 @@ DO NOT touch `crates/games/deflecto_bot` or `crates/games/banana_grab` (reserved
 - `cargo check -p app`
 - `cargo test -p app`
 - `cargo clippy -p app --all-targets -- -D warnings`
+

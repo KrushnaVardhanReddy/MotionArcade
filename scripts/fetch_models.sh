@@ -37,3 +37,4 @@ if [ -f "$TARGET_FILE" ] && [ -s "$TARGET_FILE" ]; then
 else
     echo "Note: Model download skipped or network unavailable. Headless mock streaming and synthetic tests remain 100% operational."
 fi
+

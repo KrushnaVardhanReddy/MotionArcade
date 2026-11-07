@@ -30,3 +30,4 @@ Spec 009 implements an interactive **Hands-Free Gesture Portal Menu** inside `cr
 - [ ] Moving hand away before 1.0s resets the dwell fill smoothly.
 - [ ] Seamless transition to both `DeflectoBot` and `BananaGrab`.
 - [ ] Exactly 0 `.unwrap()` in production code.
+

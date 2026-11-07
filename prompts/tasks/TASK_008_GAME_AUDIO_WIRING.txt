@@ -21,3 +21,4 @@ DO NOT touch `crates/app/src/main.rs`.
 - `cargo check -p deflecto_bot -p banana_grab`
 - `cargo test -p deflecto_bot -p banana_grab`
 - `cargo clippy -p deflecto_bot -p banana_grab --all-targets -- -D warnings`
+
