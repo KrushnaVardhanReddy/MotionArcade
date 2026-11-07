@@ -1,25 +1,57 @@
-# Spec 002: Camera Capture & ONNX Pose Inference
+# Spec 002: Real-Time Camera Capture & ONNX Pose Inference Adapter
 
 ## Status
-Draft / In Design
+Approved / Ready for Implementation
 
 ---
 
-## 1. Goal
-Provide an asynchronous inbound adapter implementing `PoseStreamPort` using `nokhwa` for camera frame capture and `ort` (ONNX Runtime) for running MoveNet-Lightning (192x192).
+## 1. Context & Motivation
+With `crates/core`, `crates/learning`, `crates/games/deflecto_bot`, and `crates/app` operating at 60 FPS on mock streams, Sprint 3 delivers the live hardware bridge:
+Capturing physical camera frames using `nokhwa`, resizing to a 192x192 RGB tensor, running MoveNet-Lightning via ONNX Runtime (`ort`), and streaming parsed 17-keypoint skeletons through `PoseStreamPort`.
 
 ---
 
-## 2. Threading & Channel Decoupling
-- Camera capture thread operates at device rate (~30 fps).
-- Worker thread executes ONNX inference (`ort`) using a pre-allocated input tensor.
-- Outputs `Skeleton` with 17 normalized keypoints into a crossbeam ring channel.
-- If inference takes >50ms, older unconsumed frames are dropped to prevent latency buildup.
+## 2. Hexagonal Architecture & Threading
+
+```
+ ┌──────────────────────────────────────────────────────────────┐
+ │                crates/input (Inbound Adapter)                │
+ │                                                              │
+ │   Camera Capture Thread           Inference Worker Thread    │
+ │   ─────────────────────           ───────────────────────    │
+ │   nokhwa (30 FPS)                 ort (MoveNet-Lightning)    │
+ │          │                                   │               │
+ │          ▼                                   ▼               │
+ │   [Raw RGB Frame] ──► Bounded Ring ──► [192x192 Tensor]      │
+ │                       (Drop Policy)          │               │
+ │                                              ▼               │
+ │                                      [Parsed Skeleton]       │
+ │                                              │               │
+ └──────────────────────────────────────────────┼───────────────┘
+                                                ▼
+                                    crates/core::PoseStreamPort
+                                                ▼
+                                           crates/app
+```
+
+### Frame Drop Policy (Zero-Lag Guarantee)
+- If the inference thread is processing a frame, newer camera frames replace the pending frame in the single-slot ring buffer.
+- Under heavy load, frame rate drops slightly, but **latency never accumulates**. Skeletons always reflect the absolute freshest frame.
 
 ---
 
-## 3. Acceptance Criteria
-- [ ] Loads `movenet_lightning.onnx` from `assets/models/`.
-- [ ] Feeds 30 fps RGB frames into inference loop without memory leaks or allocations in the hot loop.
-- [ ] Implements `PoseStreamPort` cleanly.
+## 3. MoveNet-Lightning 192x192 Output Specification
+- **Input:** Single image tensor `[1, 3, 192, 192]` float32 normalized to `[0.0, 1.0]`.
+- **Output:** Tensor shape `[1, 1, 17, 3]`.
+  - For each of the 17 keypoints:
+    - Index 0: `y` coordinate [0.0, 1.0]
+    - Index 1: `x` coordinate [0.0, 1.0]
+    - Index 2: `confidence` [0.0, 1.0]
 
+---
+
+## 4. Acceptance Criteria
+- [ ] `crates/input` implements `core::ports::input::PoseStreamPort`.
+- [ ] Camera capture gracefully falls back to mock/synthetic stream if no physical camera or display is present.
+- [ ] ONNX model tensor memory is pre-allocated; zero dynamic buffer allocations in the 30 fps hot loop.
+- [ ] Zero `.unwrap()` in production code.

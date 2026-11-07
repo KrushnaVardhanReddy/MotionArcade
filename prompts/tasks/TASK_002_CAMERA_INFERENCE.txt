@@ -1,0 +1,37 @@
+# Task Prompt: Implement crates/input (Spec 002 / Contract 002)
+
+## Goal
+Implement `crates/input` as the hardware inbound adapter for MotionArcade.
+It connects camera capture (`nokhwa`), frame preprocessing, and ONNX Runtime MoveNet model inference (`ort`), publishing parsed 17-keypoint skeletons through `core::ports::input::PoseStreamPort`.
+
+---
+
+## File Scope
+Create files strictly in `crates/input/`:
+- `crates/input/Cargo.toml`
+- `crates/input/src/lib.rs`
+- `crates/input/src/config.rs` (CameraInferenceConfig)
+- `crates/input/src/preprocess.rs` (Bilinear downscale to 192x192, horizontal mirroring, float32 normalization)
+- `crates/input/src/movenet.rs` (MoveNet output parser from [1, 1, 17, 3] tensor to Skeleton)
+- `crates/input/src/adapter.rs` (CameraPoseStreamAdapter implementing PoseStreamPort)
+- `crates/input/tests/inference_pipeline_test.rs`
+
+---
+
+## Technical & Quality Constraints
+1. **Zero `.unwrap()` or `.expect()` in non-test production code.**
+2. **Headless & CI Resilience:** 
+   - Real webcams are not present in CI / container environments. `CameraPoseStreamAdapter::new()` or `with_mock_fallback()` must not crash when no V4L2/UVC device exists.
+   - Provide unit tests validating preprocessing, tensor parsing, and mock fallback.
+3. **Memory Stability:**
+   - Pre-allocate the `[f32; 192 * 192 * 3]` image tensor to avoid heap churn on every 30 fps tick.
+
+---
+
+## Verification Gate
+Before finishing, run and ensure all pass:
+```bash
+cargo check -p input
+cargo test -p input
+cargo clippy -p input --all-targets -- -D warnings
+```

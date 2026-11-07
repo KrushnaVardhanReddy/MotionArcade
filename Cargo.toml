@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/core",
+    "crates/input",
     "crates/learning",
     "crates/games/deflecto_bot",
     "crates/app",
