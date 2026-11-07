@@ -1,0 +1,50 @@
+# Task Prompt: Implement Spec 001 / Contract 001 in crates/core
+
+## Role & Goal
+You are a Staff Rust Systems Engineer. Your job is to implement `crates/core` strictly adhering to the architectural contract in `contracts/contract_001_core_pose.md` and the standards in `prompts/SYSTEM_PROMPT.md`.
+
+---
+
+## 1. File Scope
+Only create/edit files inside `crates/core/`:
+- `crates/core/Cargo.toml`
+- `crates/core/src/lib.rs`
+- `crates/core/src/pose.rs`
+- `crates/core/src/smoothing.rs`
+- `crates/core/src/boundary.rs`
+- `crates/core/src/ports/mod.rs`
+- `crates/core/src/ports/input.rs`
+- `crates/core/src/ports/mock.rs`
+- `crates/core/tests/smoothing_test.rs`
+
+Do not touch other crates.
+
+---
+
+## 2. Strict Quality Constraints (Zero-Panic Guarantee)
+1. **NEVER** use `.unwrap()` or `.expect()` in non-test code.
+2. Use `thiserror` for `TrackingError` and `CoreError`.
+3. Provide unit tests for:
+   - `Keypoint` and `Skeleton` helpers (`torso_length()`, `is_hand_raised()`).
+   - `OneEuroFilter` noise reduction: feed a noisy sine wave and assert that variance/jitter decreases significantly.
+   - `MockFilePoseStreamAdapter` that reads simulated `PlayerInput` JSON lines.
+
+---
+
+## 3. Implementation Contract
+Refer to `contracts/contract_001_core_pose.md` for the exact struct definitions:
+- `Keypoint`
+- `Skeleton`
+- `PlayerInput`
+- `OneEuroFilterConfig` and `OneEuroFilter`
+- `PoseStreamPort` trait and `TrackingError` enum.
+
+---
+
+## 4. Verification Gate
+Before finishing, run and ensure all pass:
+```bash
+cargo check -p core
+cargo test -p core
+cargo clippy -p core --all-targets -- -D warnings
+```
