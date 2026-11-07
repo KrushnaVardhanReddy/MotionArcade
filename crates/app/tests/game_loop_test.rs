@@ -47,8 +47,8 @@ fn test_deflecto_bot_60_fps_simulation_loop_with_sample_wave() {
         env!("CARGO_MANIFEST_DIR"),
         "/../../assets/recordings/sample_wave.jsonl"
     );
-    let mut source = PoseSource::from_mock_path(sample_path)
-        .expect("Failed to load sample_wave.jsonl");
+    let mut source =
+        PoseSource::from_mock_path(sample_path).expect("Failed to load sample_wave.jsonl");
 
     let mut game = DeflectoBot::new();
     game.init();
@@ -58,8 +58,8 @@ fn test_deflecto_bot_60_fps_simulation_loop_with_sample_wave() {
 
     // Simulate 120 frames (2.0 seconds of gameplay at 60 FPS)
     for _ in 0..120 {
-        let status = run_simulation_step(&mut game, &mut source, dt)
-            .expect("simulation tick failed");
+        let status =
+            run_simulation_step(&mut game, &mut source, dt).expect("simulation tick failed");
         assert_eq!(status, GameStatus::Running);
         total_score = game.score();
     }
@@ -76,7 +76,10 @@ fn test_deflecto_bot_60_fps_simulation_loop_with_sample_wave() {
     // Verify drawing calls were issued
     assert!(!canvas.lines.is_empty(), "Quadrant lines should be drawn");
     assert!(!canvas.rings.is_empty(), "Target rings should be drawn");
-    assert!(!canvas.texts.is_empty(), "Score and HUD text should be drawn");
+    assert!(
+        !canvas.texts.is_empty(),
+        "Score and HUD text should be drawn"
+    );
     assert!(
         canvas.texts.iter().any(|t| t.contains("SCORE")),
         "HUD must display score"
@@ -105,8 +108,14 @@ fn test_procedural_synthetic_player_wave_reaches_quadrants() {
         }
     }
 
-    assert!(hit_top_left, "Synthetic wave must reach into TopLeft quadrant");
-    assert!(hit_top_right, "Synthetic wave must reach into TopRight quadrant");
+    assert!(
+        hit_top_left,
+        "Synthetic wave must reach into TopLeft quadrant"
+    );
+    assert!(
+        hit_top_right,
+        "Synthetic wave must reach into TopRight quadrant"
+    );
 }
 
 #[test]
