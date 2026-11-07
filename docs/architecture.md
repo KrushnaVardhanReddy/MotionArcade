@@ -13,14 +13,40 @@ This document details the low-level processing pipeline, latency budgets, hardwa
 
 Each stage runs on its own thread and passes data through lock-free channels. A slow camera never blocks the renderer. A slow model never blocks the game loop.
 
-| Stage | Job | Crate |
-|---|---|---|
-| Camera | Capture frames at 30 fps | `nokhwa` |
-| Pose model | Frame → 17 body keypoints per player | `ort` (ONNX Runtime), MoveNet-Lightning |
-| Smoothing | Remove jitter without adding lag | One Euro filter (in `core`) |
-| Game loop | Update game state from skeleton input | Your game code |
-| Renderer | Draw the game, HUD, and player silhouette | `macroquad` (2D) |
-| Audio | Music, sound effects, spoken prompts | `rodio` |
+### Pipeline Stages
+
+| Stage | Job | Crate | Implementation Strategy |
+|---|---|---|---|
+| **Camera** | Low-latency 30 fps capture | `nokhwa` | Raw buffer access, zero-copy pointer to GPU texture |
+| **Pose Model** | 17 keypoints per player | `ort` (ONNX Runtime) | MoveNet-Lightning / BlazePose on background thread |
+| **Smoothing** | Remove jitter without lag | `core` | One Euro filter algorithm |
+| **Game Loop** | Update state, collision math | Your game crate | Pure deterministic domain update |
+| **Renderer** | **Native GPU Console Engine** | **`macroquad` + `miniquad` / `wgpu`** | **Direct VRAM texture streaming, custom GLSL/WGSL fragment shaders for neon player silhouettes, instanced particle FX** |
+| **Audio** | Sound effects & spoken prompts | `rodio` | Multi-channel audio mixer |
+
+---
+
+## 2. Rendering Pipeline: Achieving "Nex Playground" Production Polish
+
+To achieve consumer console fidelity (mirroring dedicated devices like Nex Playground), the rendering pipeline rejects sluggish webviews and IPC wrappers in favor of direct GPU rendering:
+
+```
+ Webcam Frame (nokhwa) ──► Zero-Copy DMA ──► GPU Texture (VRAM)
+                                                  │
+                                                  ▼
+     Pose Keypoints (ort)  ──► Skeletal Bones ──► GLSL Fragment Shader (Neon Aura Mask)
+                                                  │
+                                                  ▼
+     Game Objects (Orbs/Text) ──► Instanced Sprites + GPU Particles (Sparks/Punch)
+                                                  │
+                                                  ▼
+                         Display Presentation (Locked 60 FPS / VSync)
+```
+
+### Why Native GPU Over Webviews:
+1. **Zero IPC Latency:** Webviews add 16–30ms of serializing latency passing video buffers across JavaScript bridges. Direct GPU texture uploads take **< 1.5ms**.
+2. **Custom Shaders:** GLSL/WGSL fragment shaders allow real-time glowing auras, comic hit-lines, bloom, and chromatic aberration directly over the child's silhouette.
+3. **Hardware Acceleration Across Targets:** Identical native performance compiling for Linux, Windows, macOS, Android TV, and standard WebAssembly via WebGPU.
 
 ### Latency Budget & Frame Decoupling
 
