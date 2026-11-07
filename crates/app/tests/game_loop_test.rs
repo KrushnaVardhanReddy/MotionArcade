@@ -159,3 +159,117 @@ fn test_skeleton_bone_connections_completeness() {
         assert_ne!(k1, k2);
     }
 }
+
+#[test]
+fn test_camera_pose_stream_adapter_headless_fallback_integration() {
+    use app::CameraInferenceConfig;
+
+    let config = CameraInferenceConfig {
+        camera_index: 0,
+        fps: 60,
+        ..Default::default()
+    };
+
+    // In headless environment without webcam or ONNX file, must fallback cleanly without panic
+    let mut source = PoseSource::from_camera_config(config, None);
+    std::thread::sleep(std::time::Duration::from_millis(40));
+
+    let mut game = DeflectoBot::new();
+    game.init();
+
+    let dt = 1.0 / 60.0;
+    for _ in 0..60 {
+        let status =
+            run_simulation_step(&mut game, &mut source, dt).expect("simulation step failed");
+        assert_eq!(status, GameStatus::Running);
+    }
+}
+
+#[test]
+fn test_camera_pose_stream_adapter_with_recording_fallback() {
+    use app::CameraInferenceConfig;
+    use core::pose::COCO_NOSE;
+    use std::path::PathBuf;
+
+    let sample_path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../assets/recordings/sample_wave.jsonl"
+    );
+    let config = CameraInferenceConfig {
+        camera_index: 99,
+        fps: 60,
+        ..Default::default()
+    };
+
+    let mut source = PoseSource::from_camera_config(config, Some(PathBuf::from(sample_path)));
+    std::thread::sleep(std::time::Duration::from_millis(40));
+
+    let frame = source.poll_input().expect("poll_input must succeed");
+    assert!(!frame.players.is_empty(), "Expected player from recording");
+    assert!(frame.players[0].keypoints[COCO_NOSE].is_confident(0.5));
+}
+
+#[test]
+fn test_camera_pose_source_poll_frame_interface() {
+    use app::CameraInferenceConfig;
+
+    let config = CameraInferenceConfig {
+        fps: 60,
+        ..Default::default()
+    };
+    let mut source = PoseSource::from_camera_config(config, None);
+    std::thread::sleep(std::time::Duration::from_millis(40));
+
+    // poll_frame returns Option<PlayerInput>
+    let frame_opt = source.poll_frame().expect("poll_frame must succeed");
+    assert!(frame_opt.is_some());
+
+    // poll_input returns PlayerInput
+    let frame_direct = source.poll_input().expect("poll_input must succeed");
+    assert_eq!(frame_direct.players.len(), 1);
+}
+
+#[test]
+fn test_zero_panic_guarantee_no_unwrap_in_app_production_code() {
+    use std::path::PathBuf;
+
+    let src_files = ["src/lib.rs", "src/main.rs", "src/menu.rs"];
+
+    for file_rel in &src_files {
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let path = PathBuf::from(manifest_dir).join(file_rel);
+        let content = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("Could not read file {:?}: {}", path, e));
+
+        let mut in_tests = false;
+        for (line_idx, line) in content.lines().enumerate() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("#[cfg(test)]") || trimmed.starts_with("mod tests") {
+                in_tests = true;
+            }
+            if in_tests {
+                continue;
+            }
+            // Skip comments
+            if trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*') {
+                continue;
+            }
+            if trimmed.contains(".unwrap()") {
+                panic!(
+                    "Forbidden .unwrap() found in production code {}:{} -> {}",
+                    file_rel,
+                    line_idx + 1,
+                    trimmed
+                );
+            }
+            if trimmed.contains(".expect(") {
+                panic!(
+                    "Forbidden .expect() found in production code {}:{} -> {}",
+                    file_rel,
+                    line_idx + 1,
+                    trimmed
+                );
+            }
+        }
+    }
+}

@@ -11,6 +11,7 @@ learning = { path = "../learning" }
 deflecto_bot = { path = "../games/deflecto_bot" }
 banana_grab = { path = "../games/banana_grab" }
 audio = { path = "../audio" }
+input = { path = "../input" }
 macroquad.workspace = true
 clap.workspace = true
 tracing.workspace = true

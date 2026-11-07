@@ -12,6 +12,7 @@ use std::f32::consts::TAU;
 use std::path::Path;
 
 pub mod menu;
+pub use input::{CameraInferenceConfig, CameraPoseStreamAdapter};
 pub use menu::{
     both_arms_up, check_exit_gesture, is_exit_gesture, is_t_pose, GestureMenu, SelectedGame,
     DEFAULT_PORTAL_RADIUS, DWELL_TARGET_SECONDS, EXIT_GESTURE_DWELL_SECONDS, LEFT_PORTAL_CENTER,
@@ -271,10 +272,17 @@ pub fn draw_floor_ring(center_x: f32, center_y: f32, radius_x: f32, radius_y: f3
     );
 }
 
-/// Inbound stream source that provides either a looping mock recording or real-time synthetic waves.
+/// Inbound stream source that provides a looping mock recording, real-time synthetic waves,
+/// or live hardware camera capture with MoveNet neural inference.
 pub enum PoseSource {
     Mock(MockFilePoseStreamAdapter),
-    Synthetic { start_instant: std::time::Instant },
+    Synthetic {
+        start_instant: std::time::Instant,
+    },
+    Camera {
+        adapter: input::CameraPoseStreamAdapter,
+        last_frame: PlayerInput,
+    },
 }
 
 impl PoseSource {
@@ -289,6 +297,26 @@ impl PoseSource {
         }
     }
 
+    pub fn camera(adapter: input::CameraPoseStreamAdapter) -> Self {
+        PoseSource::Camera {
+            adapter,
+            last_frame: PlayerInput::empty(0.0),
+        }
+    }
+
+    pub fn from_camera(adapter: input::CameraPoseStreamAdapter) -> Self {
+        Self::camera(adapter)
+    }
+
+    pub fn from_camera_config(
+        config: input::CameraInferenceConfig,
+        fallback_mock_path: Option<std::path::PathBuf>,
+    ) -> Self {
+        let adapter =
+            input::CameraPoseStreamAdapter::with_mock_fallback(config, fallback_mock_path);
+        Self::camera(adapter)
+    }
+
     pub fn poll_input(&mut self) -> Result<PlayerInput, core::TrackingError> {
         match self {
             PoseSource::Mock(adapter) => match adapter.poll_input()? {
@@ -299,8 +327,57 @@ impl PoseSource {
                 let elapsed = start_instant.elapsed().as_secs_f64();
                 Ok(generate_synthetic_wave(elapsed))
             }
+            PoseSource::Camera {
+                adapter,
+                last_frame,
+            } => {
+                if let Some(frame) = adapter.poll_input()? {
+                    *last_frame = frame;
+                }
+                Ok(last_frame.clone())
+            }
         }
     }
+
+    pub fn poll_frame(&mut self) -> Result<Option<PlayerInput>, core::TrackingError> {
+        match self {
+            PoseSource::Mock(adapter) => adapter.poll_input(),
+            PoseSource::Synthetic { start_instant } => {
+                let elapsed = start_instant.elapsed().as_secs_f64();
+                Ok(Some(generate_synthetic_wave(elapsed)))
+            }
+            PoseSource::Camera {
+                adapter,
+                last_frame,
+            } => match adapter.poll_input()? {
+                Some(frame) => {
+                    *last_frame = frame.clone();
+                    Ok(Some(frame))
+                }
+                None => Ok(None),
+            },
+        }
+    }
+}
+
+/// Helper to construct a live camera pose source with fallback to mock or synthetic input.
+pub fn create_camera_pose_source(
+    camera_index: u32,
+    model_path: Option<std::path::PathBuf>,
+    mirror_horizontal: bool,
+    fallback_mock_path: Option<std::path::PathBuf>,
+) -> PoseSource {
+    let default_config = input::CameraInferenceConfig::default();
+    let config = input::CameraInferenceConfig {
+        camera_index,
+        mirror_horizontal,
+        model_path: match model_path {
+            Some(path) => path,
+            None => default_config.model_path,
+        },
+        ..default_config
+    };
+    PoseSource::from_camera_config(config, fallback_mock_path)
 }
 
 /// Executes a single fixed simulation tick of the app.
@@ -368,5 +445,25 @@ mod tests {
             run_simulation_step(&mut bot, &mut source, 0.016).expect("simulation step failed");
 
         assert_eq!(status, GameStatus::Running);
+    }
+
+    #[test]
+    fn test_camera_pose_source_with_mock_fallback_headless() {
+        let config = CameraInferenceConfig {
+            fps: 60,
+            ..Default::default()
+        };
+        let mut source = PoseSource::from_camera_config(config, None);
+
+        // Sleep briefly for fallback worker thread to start delivering synthetic frames
+        std::thread::sleep(std::time::Duration::from_millis(40));
+
+        let input = source.poll_input().expect("poll_input must succeed");
+        assert_eq!(input.players.len(), 1);
+        assert!(input.players[0].keypoints[COCO_NOSE].is_confident(0.5));
+
+        // poll_frame also returns Some(frame)
+        let frame = source.poll_frame().expect("poll_frame must succeed");
+        assert!(frame.is_some() || !input.players.is_empty());
     }
 }

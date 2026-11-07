@@ -1,6 +1,7 @@
 use app::{
-    check_exit_gesture, draw_floor_ring, draw_neon_player_silhouette, GestureMenu,
-    MacroquadCanvas, PoseSource, SelectedGame, EXIT_GESTURE_DWELL_SECONDS,
+    check_exit_gesture, draw_floor_ring, draw_neon_player_silhouette, CameraInferenceConfig,
+    CameraPoseStreamAdapter, GestureMenu, MacroquadCanvas, PoseSource, SelectedGame,
+    EXIT_GESTURE_DWELL_SECONDS,
 };
 use audio::{AudioMixer, SoundEffect};
 use banana_grab::BananaGrab;
@@ -46,6 +47,22 @@ struct CliArgs {
     /// Window height in pixels
     #[arg(long, default_value_t = 720)]
     height: i32,
+
+    /// Camera device index (defaults to 0 for primary webcam)
+    #[arg(long, default_value_t = 0)]
+    camera: u32,
+
+    /// Disable physical camera capture and use synthetic wave or mock file
+    #[arg(long)]
+    no_camera: bool,
+
+    /// Path to MoveNet ONNX model file
+    #[arg(long, default_value = "assets/models/movenet_lightning.onnx")]
+    model: PathBuf,
+
+    /// Mirror camera feed horizontally (default: true)
+    #[arg(long, default_value_t = true, num_args = 0..=1, default_missing_value = "true")]
+    mirror: bool,
 }
 
 /// App mode state machine.
@@ -110,25 +127,86 @@ async fn main() {
 
     let args = CliArgs::parse();
 
-    let mut pose_source = match &args.mock_input {
-        Some(path) => match PoseSource::from_mock_path(path) {
-            Ok(src) => {
-                tracing::info!("Loaded mock pose stream from {:?}", path);
-                src
-            }
-            Err(e) => {
-                tracing::error!(
-                    "Failed to load mock recording from {:?}: {}. Falling back to synthetic wave.",
-                    path,
-                    e
-                );
+    let mut pose_source = if args.no_camera {
+        tracing::info!("Camera disabled via --no-camera flag.");
+        match &args.mock_input {
+            Some(path) => match PoseSource::from_mock_path(path) {
+                Ok(src) => {
+                    tracing::info!("Loaded mock pose stream from {:?}", path);
+                    src
+                }
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to load mock recording from {:?}: {}. Falling back to synthetic wave.",
+                        path,
+                        e
+                    );
+                    PoseSource::synthetic()
+                }
+            },
+            None => {
+                tracing::info!("Running procedural synthetic player wave.");
                 PoseSource::synthetic()
             }
-        },
-        None => {
-            tracing::info!("Running procedural synthetic player wave.");
-            PoseSource::synthetic()
         }
+    } else {
+        // Auto-detect camera hardware and ONNX model file; fall back gracefully to mock or synthetic wave
+        let model_path = if args.model.exists() {
+            args.model.clone()
+        } else {
+            let candidates = [
+                args.model.clone(),
+                PathBuf::from("../../").join(&args.model),
+                PathBuf::from("../").join(&args.model),
+            ];
+            let mut resolved = args.model.clone();
+            for c in candidates {
+                if c.exists() {
+                    resolved = c;
+                    break;
+                }
+            }
+            resolved
+        };
+
+        let config = CameraInferenceConfig {
+            camera_index: args.camera,
+            capture_width: 640,
+            capture_height: 480,
+            fps: 30,
+            model_path,
+            min_confidence: 0.25,
+            mirror_horizontal: args.mirror,
+        };
+
+        let fallback_mock = match &args.mock_input {
+            Some(path) => Some(path.clone()),
+            None => {
+                let candidates = [
+                    PathBuf::from("assets/recordings/sample_wave.jsonl"),
+                    PathBuf::from("../../assets/recordings/sample_wave.jsonl"),
+                    PathBuf::from("../assets/recordings/sample_wave.jsonl"),
+                ];
+                let mut found = None;
+                for c in &candidates {
+                    if c.exists() {
+                        found = Some(c.clone());
+                        break;
+                    }
+                }
+                found
+            }
+        };
+
+        tracing::info!(
+            "Initializing CameraPoseStreamAdapter (camera_index: {}, mirror: {}, model: {:?})",
+            config.camera_index,
+            config.mirror_horizontal,
+            config.model_path
+        );
+
+        let adapter = CameraPoseStreamAdapter::with_mock_fallback(config, fallback_mock);
+        PoseSource::camera(adapter)
     };
 
     let audio_mixer = Arc::new(AudioMixer::new());
@@ -208,10 +286,11 @@ async fn main() {
 
         // Locked 60 FPS fixed timestep update
         while accumulator >= fixed_dt {
-            match pose_source.poll_input() {
-                Ok(input) => {
+            match pose_source.poll_frame() {
+                Ok(Some(input)) => {
                     latest_input = input;
                 }
+                Ok(None) => {}
                 Err(e) => {
                     tracing::warn!("Pose input poll error: {}", e);
                 }
